@@ -2,19 +2,17 @@
 
 README: by Dylan Welch CruzID: dtwelch
 
-Graph.c: Implementation file for an integer based adjacency list representation of
-directed or undirected graphs with BFS capability.
+Graph.c: An ADT for creating, managing, manipulating, and performing BFS or DFS$
 
 Graph.h: The header file containing the public access functions from Graph.c
 
-List.c: Implementation file for an integer que adt called List used to store the
-asjacency lists for each graph
+List.c: An object queue ADT utlized to implement the adjacency list representat$
 
-List.h: The header file containing the public access functions from List.c
+List.h: The header file containing the public access functions from Graph.c
 
-GraphTest.c: A client for testing List.java.
+GraphTest.c: A client for testing Graph.c.
 
-FindPath.c: A client file that utilizes Graph.c (Note I did not complete this)
+FindComponent.c: A client file that utilizes Graph.c to find the strongly conne$
+ and output them to another file.
 
-Makefile: creates the FindPath executable for this project
-compiles component files and cleans directory.
+Makefile: compiles necessary source files to create the FindComponent executable
