@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // Graph.c by Dylan Welch ID: dtwelch
 // Implementation file for an integer based adjacency list representation of
-// directed or undirected graphs with BFS capability.
+// directed or undirected graphs with BFS and DFS capability.
 //-----------------------------------------------------------------------------
 
 #include<stdio.h>
@@ -19,6 +19,9 @@ typedef struct GraphObj{
     int* color;
     int* parent;
     int* distance;
+    int* Discover;
+    int* Finish;
+    int* component;
 } GraphObj;
 
 typedef GraphObj* Graph;
@@ -36,6 +39,9 @@ Graph newGraph(int n){
     Q->color = malloc((n+1)*sizeof(int));
     Q->parent = malloc((n+1)*sizeof(int));
     Q->distance = malloc((n+1)*sizeof(int));
+    Q->Discover = malloc((n+1)*sizeof(int));
+    Q->Finish = malloc((n+1)*sizeof(int));
+    Q->component = malloc((n+1)*sizeof(int));
     for (int i=0; i <= n; i++) {
         //Q += malloc(sizeof(ListObj));
         Q->adj[i] = newList();
@@ -43,6 +49,9 @@ Graph newGraph(int n){
         Q->color[i] = white;
         //Q += malloc(sizeof(int));
         Q->parent[i] = NIL;
+        Q->Discover[i] = UNDEF;
+        Q->Finish[i] = UNDEF;
+        Q->component[i] = UNDEF;
         //Q += malloc(sizeof(int));
         Q->distance[i] = INF;
     }
@@ -68,6 +77,9 @@ void freeGraph(Graph* pG){
         free((*pG)->color);
         free((*pG)->parent);
         free((*pG)->distance);
+        free((*pG)->Discover);
+        free((*pG)->Finish);
+        free((*pG)->component);
         free(*pG);
         *pG = NULL;
     }
@@ -75,6 +87,28 @@ void freeGraph(Graph* pG){
 
 
 // Access functions -----------------------------------------------------------
+
+// getDiscover(Graph )
+// returns the discover time of u
+/* Pre: 1<=u<=n=getOrder(G) */
+int getDiscover(Graph G, int u) {
+    if ( 1 > u || getOrder(G) < u) {
+        printf("ERROR: input vertex out of acceptable value range");
+        return(0);
+    }
+    return (G->Discover[u]);
+}
+
+// getFinish(Graph G, int u);
+// returns the finish time of u
+/* Pre: 1<=u<=n=getOrder(G) */
+int getFinish(Graph G, int u) {
+    if ( 1 > u || getOrder(G) < u) {
+        printf("ERROR: input vertex out of acceptable value range");
+        return(0);
+    }
+    return (G->Finish[u]);
+}
 
 // getOrder(Graph G)
 // returns the order of Graph G
@@ -136,7 +170,7 @@ void getPath(List L, Graph G, int u) {
 }
 
 //int getDist(Graph G, int u);
-//int getDist(List L, Graph G, int u);
+// returns the distance to vertex u;
 // precondition 1 <= u <= getOrder(G)
 int getDist(Graph G, int u) {
     if ( 1 > u || getOrder(G) < u) {
@@ -167,7 +201,6 @@ void addEdge(Graph G, int u, int v) {
     int actionu = 0;
     int actionv = 0;
     moveFront(G->adj[v]);
-    //TODO update this to match the while condition in adarc
     while (index(G->adj[v]) != -1 && actionu == 0) {
         if (get(G->adj[v]) != u) {
             if (get(G->adj[v]) > u) {
@@ -273,13 +306,132 @@ void BFS(Graph G, int s) {
     freeList(&Q);
 }
 
+// Void visit(Graph G, int x);
+// a helper function to DFS
+void visit(Graph G, int x, int* time, int k, List S) {
+    G->color[x] = gray;
+    G->Discover[x] = ++*time;
+    G->component[x] = k;
+    //moveFront(G->adj[x]);
+    moveFront(G->adj[x]);
+    while (index(G->adj[x]) != -1) {
+        if (G->color[get(G->adj[x])] == white) {
+            G->parent[get(G->adj[x])] = x;
+            visit(G, (get(G->adj[x])), time, k, S);
+        }
+        moveNext(G->adj[x]);
+    }
+    G->color[x] = black;
+    G->Finish[x] = ++*time;
+    //deleteFront(S);
+    prepend(S, x);
+}
+
+
+// void DFS(Graph G, List S);
+// performs DFS on Graph G altering its color, Discover, and Finish
+// fields.
+// /* Pre: length(S)==getOrder(G) */
+void DFS(Graph G, List S) {
+    if (length(S) != getOrder(G)) {
+        printf("ERROR: list length not equal to graph order");
+        return;
+    }
+
+    for (int i = 0; i <= G->order; i++ ) {
+        G->color[i] = white;
+        G->parent[i] = NIL;
+        G->Finish[i] = UNDEF;
+        G->Discover[i] = UNDEF;
+    }
+
+    //moveFront(G->adj);
+    int time = 0;
+    //k is connected component number
+    int k = 0;
+
+    moveFront(S);
+    while (index(S) != -1) {
+        if (G->color[get(S)] == white) {
+            //moveFront(G->adj[get(S)]);
+            k = k+1;
+            visit(G, get(S), &time, k, S);
+        }
+        moveNext(S);
+    }
+    for (int i = 0; i < getOrder(G); i++) {
+        deleteBack(S);
+    }
+
+}
+
 /*** Other operations ***/
 
 // void printGraph(FILE* out, Graph G);
 // Prints an adjacency list representation of the graph G
 void printGraph(FILE* out, Graph G) {
-    for (int i = 0; i <= getOrder(G); i++) {
-        printListLine(G->adj[i]);
-        printf("\n");
+    for (int i = 1; i <= getOrder(G); i++) {
+        fprintf(out, "%d", i);
+        fprintf(out, ": ");
+        printList(out, G->adj[i]);
+        fprintf(out, "\n");
     }
+}
+
+// Graph transpose(Graph G);
+// returns graph Q where all edges
+// are the reverse of all edge directions in graph G.
+Graph transpose(Graph G) {
+    //use a nested for loop for arcs
+
+    Graph Q = newGraph(getOrder(G));
+
+    for (int i=0; i <= G->order; i++) {
+        moveFront(G->adj[i]);
+        while (index(G->adj[i]) != -1) {
+            addArc(Q, get(G->adj[i]), i);
+            moveNext(G->adj[i]);
+        }
+    }
+
+    for (int i=0; i <= G->order; i++) {
+        //Q += malloc(sizeof(ListObj));
+        //Q += malloc(sizeof(int));
+        Q->color[i] = G->color[i];
+        //Q += malloc(sizeof(int));
+        Q->parent[i] = G->parent[i];
+        Q->Discover[i] = G->Discover[i];
+        Q->Finish[i] = G->Finish[i];
+        Q->component[i] = G->component[i];
+        //Q += malloc(sizeof(int));
+        Q->distance[i] = G->distance[i];
+    }
+    Q->size = G->size;
+    Q->lastBFS = G->lastBFS;
+    return(Q);
+}
+
+// Graph copyGraph(Graph G);
+// returns a copy of graph G.
+Graph copyGraph(Graph G) {
+    //use a nested for loop for arcs
+
+    Graph Q = newGraph(getOrder(G));
+
+    for (int i=0; i <= G->order; i++) {
+        //Q += malloc(sizeof(ListObj));
+        Q->adj[i] = copyList(G->adj[i]);
+        //Q += malloc(sizeof(int));
+        Q->color[i] = G->color[i];
+        //Q += malloc(sizeof(int));
+        Q->parent[i] = G->parent[i];
+        Q->Discover[i] = G->Discover[i];
+        Q->Finish[i] = G->Finish[i];
+        Q->component[i] = G->component[i];
+        //Q += malloc(sizeof(int));
+        Q->distance[i] = G->distance[i];
+    }
+    Q->size = G->size;
+    Q->lastBFS = G->lastBFS;
+    return(Q);
 }
