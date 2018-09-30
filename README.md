@@ -12,7 +12,7 @@ List.h: The header file containing the public access functions from Graph.c
 
 GraphTest.c: A client for testing Graph.c.
 
-FindComponent.c: A client file that utilizes Graph.c to find the strongly conne$
+FindComponent.c: A client file that utilizes Graph.c to find strongly connected components
  and output them to another file.
 
 Makefile: compiles necessary source files to create the FindComponent executable
